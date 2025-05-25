@@ -56,10 +56,13 @@ export default function Home() {
               if (!response.ok) throw new Error('Failed to fetch messages');
               const data = await response.json();
               setMessages(data.messages);
-          } catch (err: any) {
-              setError(err.message);
+          } catch (err: unknown) {
+              const message = err instanceof Error ? err.message : String(err);
+              console.error('❌ Error fetching messages:', message);
+              setError(message);
+          } finally {
+              setLoading(false);
           }
-          setLoading(false);
       }
 
       fetchMessages();
