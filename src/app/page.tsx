@@ -40,8 +40,9 @@ export default function Home() {
             } else {
                 setResponse(`❌ Failed: ${data.message}`);
             }
-        } catch (error) {
-            setResponse("❌ Error sending message");
+        } catch (error: unknown) {
+          console.error("❌ Unexpected error sending message:", error);
+          setResponse("❌ Error sending message");
         }
 
         setLoading(false);

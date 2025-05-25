@@ -1,7 +1,10 @@
-// src/lib/InstagramSession.ts
 import { IgApiClient } from 'instagram-private-api';
 import fs from 'fs';
 import { promisify } from 'util';
+import {
+  isIgResponseError,
+  isIgResponseErrorWithStatus,
+} from '@/lib/InstagramErrorUtils';
 
 const writeFileAsync = promisify(fs.writeFile);
 const readFileAsync = promisify(fs.readFile);
@@ -24,24 +27,37 @@ export async function initInstagram(): Promise<IgApiClient> {
     console.log('✅ Instagram session loaded.');
 
     await ig.account.currentUser();
-  } catch (err) {
+  } catch (err: unknown) {
     console.log(`🔁 Session invalid or missing. Logging in as ${username}...`);
 
     try {
+      // preLoginFlow with safe handling
       try {
         await ig.simulate.preLoginFlow();
-      } catch (e: any) {
-        if (e.response?.statusCode !== 404) throw e;
-        console.warn('⚠️ Skipping preLoginFlow due to 404');
+      } catch (e: unknown) {
+        if (isIgResponseErrorWithStatus(e, 404)) {
+          console.warn('⚠️ Skipping preLoginFlow due to 404');
+        } else {
+          const msg = e instanceof Error ? e.message : String(e);
+          console.error('❌ preLoginFlow failed:', msg);
+          throw new Error(msg);
+        }
       }
 
+      // Perform login
       await ig.account.login(username, password);
 
+      // postLoginFlow with safe handling
       try {
         await ig.simulate.postLoginFlow();
-      } catch (e: any) {
-        if (e.response?.statusCode !== 404) throw e;
-        console.warn('⚠️ Skipping postLoginFlow due to 404');
+      } catch (e: unknown) {
+        if (isIgResponseErrorWithStatus(e, 404)) {
+          console.warn('⚠️ Skipping postLoginFlow due to 404');
+        } else {
+          const msg = e instanceof Error ? e.message : String(e);
+          console.error('❌ postLoginFlow failed:', msg);
+          throw new Error(msg);
+        }
       }
 
       const session = await ig.state.serialize();
@@ -49,8 +65,15 @@ export async function initInstagram(): Promise<IgApiClient> {
       await writeFileAsync('./session.json', JSON.stringify(session));
 
       console.log('✅ New Instagram session saved.');
-    } catch (loginErr: any) {
-      console.error('❌ Login failed:', JSON.stringify(loginErr.response?.body || loginErr.message, null, 2));
+    } catch (loginErr: unknown) {
+      const message =
+        loginErr instanceof Error ? loginErr.message : String(loginErr);
+      const body =
+        isIgResponseError(loginErr) && loginErr.response?.body
+          ? JSON.stringify(loginErr.response.body, null, 2)
+          : message;
+
+      console.error('❌ Login failed:', body);
       throw new Error('Instagram login failed');
     }
   }

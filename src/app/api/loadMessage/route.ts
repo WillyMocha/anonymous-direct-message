@@ -8,9 +8,10 @@ export async function GET() {
     const threads = await inboxFeed.items();
 
     return NextResponse.json({ messages: threads });
-  } catch (err: any) {
-    console.error('❌ Error fetching Instagram messages:', err.message);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('❌ Error fetching Instagram messages:', errorMessage);
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 

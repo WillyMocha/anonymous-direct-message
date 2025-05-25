@@ -26,9 +26,15 @@ export async function POST(req: Request) {
 
     try {
       recipientUser = await ig.user.searchExact(recipientUsername);
-    } catch (error: any) {
-      console.error(`Recipient '${recipientUsername}' not found.`, error);
-      return NextResponse.json({ success: false, message: "Recipient user not found", error: error.message }, { status: 404 });
+    } catch (error: unknown) {
+        const errMessage = error instanceof Error ? error.message : String(error);
+        console.error(`Recipient '${recipientUsername}' not found.`, error);
+        
+        return NextResponse.json({
+          success: false,
+          message: 'Recipient user not found',
+          error: errMessage,
+        }, { status: 404 });
     }
 
     const recipientId = recipientUser?.pk;
@@ -42,9 +48,15 @@ export async function POST(req: Request) {
 
     console.log("Message sent successfully.");
     return NextResponse.json({ success: true, message: "Message sent successfully" });
-  } catch (error: any) {
-    console.error("Error in API handler:", error);
-    return NextResponse.json({ success: false, message: "Failed to send message", error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+      const errMessage = error instanceof Error ? error.message : String(error);
+      console.error("Error in API handler:", error);
+      
+      return NextResponse.json({
+        success: false,
+        message: 'Failed to send message',
+        error: errMessage,
+      }, { status: 500 });
   }
 }
 
