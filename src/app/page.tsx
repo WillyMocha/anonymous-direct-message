@@ -63,7 +63,6 @@ export default function Home() {
 
       fetchMessages();
       // const interval = setInterval(fetchMessages, 30000); // Poll every 30s
-
       // return () => clearInterval(interval);
   },[]);
 
